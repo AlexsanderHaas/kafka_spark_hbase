@@ -31,6 +31,7 @@ import org.apache.spark.streaming.kafka010.LocationStrategies;
 import com.google.protobuf.ServiceException;
 
 import scala.Tuple2;
+import scala.util.parsing.json.JSONArray;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -38,11 +39,12 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import main.ConnectioHbase;
+import org.json.JSONObject;
 
 public class Kafka_Hbase {
 
 	private static Kafka_Hbase go_kafka;
-		
+
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		// new Kafka_Hbase().Consome();
@@ -77,7 +79,7 @@ public class Kafka_Hbase {
 		SparkConf conf = new SparkConf().setMaster("local[1]").setAppName("SparkKafka10WordCount");
 
 		// Read messages in batch of 30 seconds
-		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(15));
+		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(10));
 
 		// Start reading messages from Kafka and get DStream
 		final JavaInputDStream<ConsumerRecord<String, String>> stream = KafkaUtils.createDirectStream(jssc,
@@ -94,6 +96,26 @@ public class Kafka_Hbase {
 		// Break every message into words and return list of words
 		JavaDStream<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
 			public Iterator<String> call(String line) throws Exception {
+				
+				System.out.println("LINES: " + line);				
+				
+				ConnectioHbase lo_hbase = new ConnectioHbase();
+				
+				
+				
+				/*JSONObject lv_obj = new JSONObject(line);
+
+				Iterator<?> keys = lv_obj.keys();
+				String key = (String) keys.next();*/
+				//System.out.println("Key: " + key);
+				//System.out.println("Value: " + lv_obj.get("ts"));
+				/*while (keys.hasNext()) {
+					String key = (String) keys.next();
+					System.out.println("Key: " + key);
+					System.out.println("Value: " + lv_obj.get(key));
+				}*/
+				lo_hbase.M_PutTable(line);
+
 				return Arrays.asList(line.split(" ")).iterator();
 			}
 		});
@@ -102,8 +124,32 @@ public class Kafka_Hbase {
 		JavaPairDStream<String, Integer> wordMap = words.mapToPair(new PairFunction<String, String, Integer>() {
 			public Tuple2<String, Integer> call(String word) throws Exception {
 				// go_kafka.ReadTable(word);
-				//go_kafka.PutTable(word);
-				// System.out.println("Linha Kafka:" + word);
+				// go_kafka.PutTable(word);
+				String[] colunas = word.split(" ");
+
+				// Tennnnntar utttilizar aaaaaaaaaaaaas classse json pra pegar aas
+				// informaaaaaaaações
+				// JSONArray arr = new JSONArray(colunas);
+
+				/*System.out.println("Key: " + word);
+
+				JSONObject lv_obj = new JSONObject(word);
+
+				Iterator<?> keys = lv_obj.keys();
+
+				while (keys.hasNext()) {
+					String key = (String) keys.next();
+					System.out.println("Key: " + key);
+					System.out.println("Value: " + lv_obj.get(key));
+				}*/
+
+				/*
+				 * System.out.println("Linha Kafka:"+ lv_obj); if (colunas.length > 7) { for
+				 * (int i = 0; i < 8; i++) { System.out.println(i + "- Coluna Kafka:" +
+				 * colunas[i]); } }
+				 */
+
+				// System.out.println("Coluna Kafka:" + word);
 				return new Tuple2<String, Integer>(word, 1);
 			}
 		});
@@ -115,35 +161,7 @@ public class Kafka_Hbase {
 			}
 		});
 
-		words.foreachRDD(rdd -> {
-
-			rdd.foreachPartition(partitionOfRecords -> {							
-				
-				String value;
-				int num = 0; 
-				
-				ConnectioHbase connection = new ConnectioHbase();
-				
-				System.out.println("Dados:fora do while");
-				
-				while (partitionOfRecords.hasNext()) {
-					
-					num ++;
-					
-					value = partitionOfRecords.next();
-					
-					System.out.println("Dados:" + num + "-" + value );
-					
-					connection.PutTable(value, num);
-				}						
-				
-				System.out.println("Dados:Apos o while");
-				
-				connection.Close();
-				
-			});
-
-		});
+		
 
 		// Print the word count
 		wordCount.print();
@@ -152,14 +170,13 @@ public class Kafka_Hbase {
 		jssc.awaitTermination();
 
 	}
-	
-	
+
 	public void PutTable(String nome) throws IOException, ServiceException {
 
 		TableName test = TableName.valueOf("test");
- 
+
 		String fam = "dns";
-		
+
 		byte[] column1 = Bytes.toBytes("a");
 
 		Configuration config = HBaseConfiguration.create();
@@ -169,7 +186,7 @@ public class Kafka_Hbase {
 		config.addResource(new Path(path));
 
 		Connection connection = ConnectionFactory.createConnection(config);
-		
+
 		HBaseAdmin.checkHBaseAvailable(config);
 
 		Admin admin = connection.getAdmin();
@@ -247,3 +264,5 @@ public class Kafka_Hbase {
 
 	}
 }
+
+
