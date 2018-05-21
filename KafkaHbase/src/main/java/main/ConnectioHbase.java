@@ -1,6 +1,7 @@
 package main;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -59,11 +60,22 @@ public class ConnectioHbase {
 
 	public void M_DnsPutTable(Cl_BroDns lo_dns) throws IOException, ServiceException {
 
-		byte[] lv_row;		
+		byte[] lv_row;
 
-		lv_row = Bytes.toBytes(lo_dns.getTs());
+		Timestamp lv_timestamp = new Timestamp(System.currentTimeMillis());
+
+		String lv_stamp;
+
+		lv_stamp = Long.toString(lv_timestamp.getTime());
+
+		// System.out.println("TimeHUmm: " + lv_stamp);
+
+		lv_row = Bytes.toBytes(lv_stamp);
 
 		Put ls_table = new Put(lv_row);
+
+		// ----------- Ts
+		M_PutLs(lo_dns.gs_colunas[0], lo_dns.getTs(), ls_table);
 
 		// ----------- Uid
 		M_PutLs(lo_dns.gs_colunas[1], lo_dns.getUid(), ls_table);
@@ -71,29 +83,24 @@ public class ConnectioHbase {
 		// ----------- Id.Orig_H
 		M_PutLs(lo_dns.gs_colunas[2], lo_dns.getOrig_h(), ls_table);
 
-
 		// ----------- Id.Orig_P
 		M_PutLs(lo_dns.gs_colunas[3], lo_dns.getOrig_p(), ls_table);
 
-
 		// ----------- Id.Resp_H
 		M_PutLs(lo_dns.gs_colunas[4], lo_dns.getResp_h(), ls_table);
-	
 
 		// ----------- Id.Orig_P
 		M_PutLs(lo_dns.gs_colunas[5], lo_dns.getResp_p(), ls_table);
-		
 
 		// ----------- Proto
 		M_PutLs(lo_dns.gs_colunas[6], lo_dns.getProto(), ls_table);
-		
 
 		// ----------- Query
 		M_PutLs(lo_dns.gs_colunas[7], lo_dns.getQuery(), ls_table);
 
 		// ----------- PutTable
 
-		System.out.println("LS_TABLE: " + ls_table);
+		// System.out.println("LS_TABLE: " + ls_table);
 
 		gv_table.put(ls_table);
 
@@ -116,6 +123,8 @@ public class ConnectioHbase {
 		byte[] lv_value;
 
 		if (value != null) {
+
+			// System.out.println("\n: " + col + ":" + value);
 
 			lv_coluna = Bytes.toBytes(col);
 

@@ -69,7 +69,7 @@ public class Kafka_Hbase {
 		// Configure Spark to listen messages in topic test
 		Collection<String> topics = Arrays.asList("test");
 
-		SparkConf conf = new SparkConf().setMaster("local[1]").setAppName("SparkKafka10WordCount");
+		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("SparkKafka10WordCount");
 
 		// Read messages in batch of 30 seconds
 		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(10));
@@ -85,46 +85,44 @@ public class Kafka_Hbase {
 				return kafkaRecord.value();
 			}
 		});
-		
+
 		lines.foreachRDD(rdd -> {
-			
+
 			System.out.println("Dados:Do RDDe" + rdd.count());
-			
- 			rdd.foreachPartition(partitionOfRecords -> {							
- 				
- 				String value;
- 				
- 				ConnectioHbase lo_connection = new ConnectioHbase(); 			
- 				
- 			// Get Gson object
- 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
- 				
- 			// parse json string to object
- 				Cl_BroDns lo_dns;// = gson.fromJson(fileData, Employee.class);
- 				
- 				while (partitionOfRecords.hasNext()) {
- 					
- 					value = partitionOfRecords.next();
- 					
- 					lo_dns = gson.fromJson(value, Cl_BroDns.class);
- 		
- 					lo_connection.M_DnsPutTable(lo_dns);
- 					
- 				}						
- 				
- 				System.out.println("Dados:Apos o while");
- 				
- 				lo_connection.Close();
- 				
- 			});
- 
- 		});
-		
+
+			rdd.foreachPartition(partitionOfRecords -> {
+
+				String value;
+
+				ConnectioHbase lo_connection = new ConnectioHbase();
+
+				// Get Gson object
+				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+				// parse json string to object
+				Cl_BroDns lo_dns;// = gson.fromJson(fileData, Employee.class);
+
+				while (partitionOfRecords.hasNext()) {
+
+					value = partitionOfRecords.next();
+
+					lo_dns = gson.fromJson(value, Cl_BroDns.class);
+
+					lo_connection.M_DnsPutTable(lo_dns);
+
+				}
+
+				lo_connection.Close();
+
+			});
+
+		});
+
 		jssc.start();
 		jssc.awaitTermination();
 
 	}
-	
+
 	public void ReadTable(String nome) throws IOException, ServiceException {
 
 		TableName test = TableName.valueOf("test");
@@ -157,5 +155,3 @@ public class Kafka_Hbase {
 
 	}
 }
-
-
