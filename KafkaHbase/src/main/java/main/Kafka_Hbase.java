@@ -67,12 +67,12 @@ public class Kafka_Hbase {
 		kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
 
 		// Configure Spark to listen messages in topic test
-		Collection<String> topics = Arrays.asList("test");
+		Collection<String> topics = Arrays.asList("BroLog");
 
 		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("SparkKafka10WordCount");
 
 		// Read messages in batch of 30 seconds
-		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(10));
+		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(10)); //Durations.milliseconds(10)); é bem rápido
 
 		// Start reading messages from Kafka and get DStream
 		final JavaInputDStream<ConsumerRecord<String, String>> stream = KafkaUtils.createDirectStream(jssc,
@@ -100,15 +100,15 @@ public class Kafka_Hbase {
 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 				// parse json string to object
-				Cl_BroDns lo_dns;// = gson.fromJson(fileData, Employee.class);
+				Cl_BroLog lo_log;// = gson.fromJson(fileData, Employee.class);
 
 				while (partitionOfRecords.hasNext()) {
 
 					value = partitionOfRecords.next();
 
-					lo_dns = gson.fromJson(value, Cl_BroDns.class);
+					lo_log = gson.fromJson(value, Cl_BroLog.class);
 
-					lo_connection.M_DnsPutTable(lo_dns);
+					lo_connection.M_LogPutTable(lo_log);
 
 				}
 
