@@ -44,7 +44,10 @@ public class Kafka_Hbase {
 
 		go_kafka = new Kafka_Hbase();
 
-		go_kafka.Consome();
+		//go_kafka.Consome();
+		
+		go_kafka.ReadBroLog();
+		
 	}
 
 	public static void Consome() throws Exception {
@@ -100,7 +103,7 @@ public class Kafka_Hbase {
 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 				// parse json string to object
-				Cl_BroLog lo_log;// = gson.fromJson(fileData, Employee.class);
+				Cl_BroLog lo_log;
 
 				while (partitionOfRecords.hasNext()) {
 
@@ -121,6 +124,21 @@ public class Kafka_Hbase {
 		jssc.start();
 		jssc.awaitTermination();
 
+	}
+	
+	public void ReadBroLog() throws IOException, ServiceException {
+		
+		ConnectioHbase lo_connection = new ConnectioHbase();
+		
+		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("ReadHbase");
+
+		// Read messages in batch of 30 seconds
+		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(10)); //Durations.milliseconds(10)); é bem rápido
+
+		
+		
+		lo_connection.M_LogGetTable();
+		
 	}
 
 	public void ReadTable(String nome) throws IOException, ServiceException {
