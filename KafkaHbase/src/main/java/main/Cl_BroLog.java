@@ -85,7 +85,58 @@ public class Cl_BroLog {
     		"resp_fuids"         ,
     };
     
-	public String getTs() {
+   
+    public String getTuple() {	
+    	
+    	String lv_tuple = "  Tipo	  : " +this.log			+ 
+    					  "; Orig_IP  : " +this.orig_h		+ 
+    					  "; Orig_PRT : " +this.orig_p		+
+    					  "; Resp_IP  : " +this.resp_h		+ 
+    					  "; Resp_PRT : " +this.resp_p;
+    	
+    	return lv_tuple;
+    	
+    }
+    
+    public String getConn() {
+    	
+    	String lv_conn = "";        
+    	
+    	if(this.log.equals("CONN")) {
+
+    		lv_conn = getTuple() +
+    				  "; service      : " +this.service      + 
+    				  "; duration     : " +this.duration     + 
+    				  "; orig_bytes   : " +this.orig_bytes   + 
+    				  "; resp_bytes   : " +this.resp_bytes   + 
+    				  "; conn_state   : " +this.conn_state   + 
+    				  "; orig_pkts    : " +this.orig_pkts    + 
+    				  "; orig_ip_bytes: " +this.orig_ip_bytes+ 
+    				  "; resp_pkts    : " +this.resp_pkts    + 
+    				  "; resp_ip_bytes: " +this.resp_ip_bytes;     	
+    	}         
+    	
+    	return lv_conn;
+    }
+    
+    public String getDns() {
+    	
+    	String lv_dns = "";
+    	
+    	//System.out.println("TIPO:"+ log + "TAM:" + log.length());
+    	
+    	if(this.log.equals("DNS")) {
+    		
+    		lv_dns = //getTuple() +
+    				"; query	: " +query;	  //+
+    				//"; proto    : " +proto    +
+    				//"; trans_id : " +trans_id;    		
+    	}
+    	    	
+    	return lv_dns;
+    }
+    
+    public String getTs() {
 		return ts;
 	}
 
