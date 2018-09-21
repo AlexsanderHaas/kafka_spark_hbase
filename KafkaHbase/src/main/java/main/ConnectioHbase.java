@@ -3,6 +3,7 @@ package main;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -33,15 +34,34 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.spark.api.python.BytesToString;
 import org.apache.spark.network.util.ByteArrayReadableChannel;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.protobuf.ServiceException;
 import javafx.collections.transformation.FilteredList;
 
+//Add 16/09
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+
+
 public class ConnectioHbase {
 
-	TableName gv_brolog = TableName.valueOf("BroLog");
+	//Nome das Colunas no Hbase    
+    public String[]  gs_key = {
+	    "ts"		,
+	    "uid"		,
+	    "id.orig_h" ,
+	    "id.orig_p" ,
+	    "id.resp_h" ,
+	    "id.resp_p" ,
+    };
+	
+	TableName gv_brolog = TableName.valueOf("Log");
 
 	String gv_famy_key = "key";
 
@@ -83,6 +103,77 @@ public class ConnectioHbase {
 
 	public void Close() throws IOException {
 		gv_connection.close();
+	}
+	
+	public void M_PutConn(String im_json) throws ParseException, IOException{							
+		
+		JSONParser lv_parser = new JSONParser();
+		
+		JSONObject lv_obj = (JSONObject) lv_parser.parse(im_json);									
+		
+		String lv_field,
+			   lv_value;
+		
+		int lv_cont = 0;
+		
+		byte[] lv_row;
+		
+		String lv_id = null;
+		
+		lv_id = (String)lv_obj.get("id.orig_h") + 
+				'-' +
+				(String)lv_obj.get("uid");
+		
+		//System.out.println("\n Row:"+lv_id);
+		
+		lv_row = Bytes.toBytes(lv_id);
+
+		Put ls_table = new Put(lv_row);
+		
+		Iterator<?> lv_keys = lv_obj.keySet().iterator();
+		
+		System.out.println("\n JSON:"+im_json);
+		
+		while(lv_keys.hasNext()) {
+			
+			lv_field = lv_keys.next().toString();
+			
+			lv_value = lv_obj.get(lv_field).toString();						
+			
+			//Se for menor e igual a 5 insere na famyli KEY - NÃO FUNCIONA POIS O OBJETO DESORGANIZA O JSON			
+			//lv_cont ++;
+			
+			//System.out.println("\nCON:"+lv_cont+ "/tFieldname:"+ lv_field + "\t \t Value:" + lv_value);
+			
+			if(lv_field.equals(gs_key[0]) ||
+		       lv_field.equals(gs_key[1]) ||
+		       lv_field.equals(gs_key[2]) ||
+		       lv_field.equals(gs_key[3]) ||
+		       lv_field.equals(gs_key[4]) ||
+		       lv_field.equals(gs_key[5])
+			   ){				
+				
+				M_PutLs(gv_famy_key, lv_field, lv_value, ls_table);
+				//System.out.println("\n Fieldname:"+ lv_field + "\t \t Value:" + lv_value);
+			}else{
+				M_PutLs(gv_fam_conn, lv_field, lv_value, ls_table);			
+			}
+															
+		}
+		
+		gv_table.put(ls_table);
+
+		try {
+			HColumnDescriptor desc1 = new HColumnDescriptor(lv_row);
+			gv_admin.addColumn(gv_brolog, desc1);
+			//System.out.println("Success.");
+		} catch (Exception e) {
+			System.out.println("Failed.");
+			System.out.println(e.getMessage());
+		} finally {
+			// admin.enableTable(test);
+		}
+		
 	}
 	
 	public void M_LogPutTable(Cl_BroLog lo_log) throws IOException, ServiceException {

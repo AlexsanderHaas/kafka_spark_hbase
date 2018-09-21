@@ -46,12 +46,6 @@ import scala.Tuple2;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Level;
 
-//Add 16/09
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-//import javax.json.stream.JsonParserFactory;
-//import org.json.simple.parser.JSONParser;
-
 public class Kafka_Hbase {
 
 	private static Kafka_Hbase go_kafka;
@@ -91,7 +85,7 @@ public class Kafka_Hbase {
 		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("BroLogConn");
 		
 		// Read messages in batch of 30 seconds
-		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(3)); //Durations.milliseconds(10)); é bem rápido
+		JavaStreamingContext jssc = new JavaStreamingContext(conf,Durations.milliseconds(10)); //Durations.seconds(3));é bem rápido
 		
 		//Add 21/08/18
 		//Disable INFO messages-> https://stackoverflow.com/questions/48607642/disable-info-messages-in-spark-for-an-specific-application
@@ -118,39 +112,23 @@ public class Kafka_Hbase {
 
 				String value;
 
-				//ConnectioHbase lo_connection = new ConnectioHbase();
+				ConnectioHbase lo_connection = new ConnectioHbase();
 
 				// Get Gson object
 				Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 				// parse json string to object
 				Cl_BroLog lo_log;
-				
-				
-				
+												
 				while (partitionOfRecords.hasNext()) {
 
 					value = partitionOfRecords.next();
-
-					lo_log = gson.fromJson(value, Cl_BroLog.class);
 					
-					//System.out.println("VALUE:"+value);
+					lo_connection.M_PutConn(value);
 					
-					JSONParser pars = new JSONParser();
+					//lo_log = gson.fromJson(value, Cl_BroLog.class);
 					
-					JSONObject lv_obj = (JSONObject) pars.parse(value);
-				
-										
-					Iterator keys =  lv_obj.keySet().iterator();
-					
-					
-					while(keys.hasNext()) {
-						
-						String n = (String) keys.next().toString();
-						
-						System.out.println("\n Fieldname:"+ n + "\t \t Value:" + lv_obj.get(n));
-						
-					}
+					//System.out.println("VALUE:"+value);									
 					
 					//lo_connection.M_LogPutTable(lo_log);
 
