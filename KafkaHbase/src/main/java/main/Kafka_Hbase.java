@@ -61,7 +61,7 @@ public class Kafka_Hbase {
 		// Configure Spark to connect to Kafka running on local machine
 		Map<String, Object> kafkaParams = new HashMap<String, Object>();
 
-		kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "namenode.ambari.hadoop:6667");
 
 		kafkaParams.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
 				"org.apache.kafka.common.serialization.StringDeserializer");
@@ -76,9 +76,10 @@ public class Kafka_Hbase {
 		kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
 
 		// Configure Spark to listen messages in topic test
-		Collection<String> topics = Arrays.asList("BroLog");
+		//Collection<String> topics = Arrays.asList("BroLog");
+		Collection<String> topics = Arrays.asList("LogConn");
 
-		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("SparkKafka10WordCount");
+		SparkConf conf = new SparkConf().setMaster("local[12]").setAppName("SparkBroLog");
 		
 		// Read messages in batch of 30 seconds
 		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(3)); //Durations.milliseconds(10)); é bem rápido
@@ -100,7 +101,7 @@ public class Kafka_Hbase {
 		});
 		
 		//comentado para testar o processamento mappreduce me tempo de execução
-		/*lines.foreachRDD(rdd -> {
+		lines.foreachRDD(rdd -> {
 
 			System.out.println("Dados:Do RDDe" + rdd.count());
 
@@ -131,7 +132,7 @@ public class Kafka_Hbase {
 			});
 
 		});
-		*/
+		
 		
 		//Teste tratar as linhas para fazer o map VERIFICAR NO SPARK SE ESSE REALMENTE SERIA O JEITO CORRETO
 		// Break every message into words and return list of words
@@ -139,22 +140,22 @@ public class Kafka_Hbase {
 			public Iterator<String> call(String line) throws Exception {
 				
 				// Get Gson object
-				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				//Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 				// parse json string to object
-				Cl_BroLog lo_log;	
-				
-				lo_log = gson.fromJson(line, Cl_BroLog.class);							
+				//Cl_BroLog lo_log;	
+		
+				//lo_log = gson.fromJson(line, Cl_BroLog.class);							
 				
 //				String lv_key = "UID: "+lo_log.getUid() +";IP_Orig: "+ lo_log.getOrig_h() +";IP_Resp: "+ lo_log.getResp_h();
 				//String lv_key = "TIPO: "+lo_log.getLog()+";IP_Orig: "+ lo_log.getOrig_h() +";IP_Resp: "+ lo_log.getResp_h();
 				
-				String lv_key = lo_log.getDns();
+				//String lv_key = lo_log.getDns();
 				
 				//System.out.println("\n Line WORDS - " + lv_key);
 								
-				//return Arrays.asList(line.split(" ")).iterator();
-				return Arrays.asList(lv_key.split(";")).iterator();
+				return Arrays.asList(line.split(" ")).iterator();
+				//return Arrays.asList(lv_key.split(";")).iterator();
 			}
 		});
 		
@@ -163,7 +164,7 @@ public class Kafka_Hbase {
 			public Tuple2<String, Integer> call(String word) throws Exception {
 				// go_kafka.ReadTable(word);
 				//go_kafka.PutTable(word);
-				System.out.println("Linha Kafka:" + word);
+				//System.out.println("Linha Kafka:" + word);
 				return new Tuple2<String, Integer>(word, 1);
 			}
 		});
@@ -171,7 +172,7 @@ public class Kafka_Hbase {
 		// Count occurance of each word
 		JavaPairDStream<String, Integer> wordCount = wordMap.reduceByKey(new Function2<Integer, Integer, Integer>() {
 			public Integer call(Integer first, Integer second) throws Exception {
-				System.out.println("COUNT:" + first +" Second:" +second);
+				//System.out.println("COUNT:" + first +" Second:" +second);
 				return first + second;
 			}
 		});
