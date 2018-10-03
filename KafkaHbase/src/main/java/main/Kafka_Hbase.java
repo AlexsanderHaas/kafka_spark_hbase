@@ -27,6 +27,7 @@ import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
 
+
 import com.google.protobuf.ServiceException;
 
 import java.io.IOException;
@@ -34,9 +35,12 @@ import java.util.*;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import main.ConnectioHbase;
 import scala.Tuple2;
+
 
 //Add 21/08
 import org.apache.log4j.Logger;
@@ -61,7 +65,7 @@ public class Kafka_Hbase {
 		// Configure Spark to connect to Kafka running on local machine
 		Map<String, Object> kafkaParams = new HashMap<String, Object>();
 
-		kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "namenode.ambari.hadoop:6667");
+		kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
 
 		kafkaParams.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
 				"org.apache.kafka.common.serialization.StringDeserializer");
@@ -76,13 +80,12 @@ public class Kafka_Hbase {
 		kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
 
 		// Configure Spark to listen messages in topic test
-		//Collection<String> topics = Arrays.asList("BroLog");
-		Collection<String> topics = Arrays.asList("LogConn");
+		Collection<String> topics = Arrays.asList("BroLog");
 
-		SparkConf conf = new SparkConf().setMaster("local[12]").setAppName("SparkBroLog");
+		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("BroLogConn");
 		
 		// Read messages in batch of 30 seconds
-		JavaStreamingContext jssc = new JavaStreamingContext(conf, Durations.seconds(3)); //Durations.milliseconds(10)); é bem rápido
+		JavaStreamingContext jssc = new JavaStreamingContext(conf,Durations.seconds(3));//Durations.milliseconds(10)); é bem rápido
 		
 		//Add 21/08/18
 		//Disable INFO messages-> https://stackoverflow.com/questions/48607642/disable-info-messages-in-spark-for-an-specific-application
@@ -104,9 +107,9 @@ public class Kafka_Hbase {
 		lines.foreachRDD(rdd -> {
 
 			System.out.println("Dados:Do RDDe" + rdd.count());
-
+						
 			rdd.foreachPartition(partitionOfRecords -> {
-
+				
 				String value;
 
 				ConnectioHbase lo_connection = new ConnectioHbase();
@@ -116,25 +119,31 @@ public class Kafka_Hbase {
 
 				// parse json string to object
 				Cl_BroLog lo_log;
-
+												
 				while (partitionOfRecords.hasNext()) {
 
 					value = partitionOfRecords.next();
-
+					
 					lo_log = gson.fromJson(value, Cl_BroLog.class);
-
-					lo_connection.M_LogPutTable(lo_log);
+										
+					
+					lo_connection.M_PutConn(value);
+										
+					
+					//System.out.println("VALUE:"+value);									
+					
+					//lo_connection.M_LogPutTable(lo_log);
 
 				}
 
-				lo_connection.Close();
+				//lo_connection.Close();
 
 			});
 
 		});
 		
 		
-		//Teste tratar as linhas para fazer o map VERIFICAR NO SPARK SE ESSE REALMENTE SERIA O JEITO CORRETO
+		/*//Teste tratar as linhas para fazer o map VERIFICAR NO SPARK SE ESSE REALMENTE SERIA O JEITO CORRETO
 		// Break every message into words and return list of words
 		JavaDStream<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
 			public Iterator<String> call(String line) throws Exception {
@@ -144,7 +153,7 @@ public class Kafka_Hbase {
 
 				// parse json string to object
 				//Cl_BroLog lo_log;	
-		
+				
 				//lo_log = gson.fromJson(line, Cl_BroLog.class);							
 				
 //				String lv_key = "UID: "+lo_log.getUid() +";IP_Orig: "+ lo_log.getOrig_h() +";IP_Resp: "+ lo_log.getResp_h();
@@ -179,8 +188,8 @@ public class Kafka_Hbase {
 
 
 		// Print the word count
-		wordCount.print(100);// sem informar o número so os 10 primeiros são exibidos
-		
+		wordCount.print();// sem informar o número so os 10 primeiros são exibidos
+		*/
 		jssc.start();
 		jssc.awaitTermination();
 
