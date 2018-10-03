@@ -1,11 +1,15 @@
 package main;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.net.ntp.TimeStamp;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
@@ -46,7 +50,7 @@ import javafx.collections.transformation.FilteredList;
 //Add 16/09
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
+import java.util.Date;
 
 
 public class ConnectioHbase {
@@ -59,11 +63,12 @@ public class ConnectioHbase {
 	    "id.orig_p" ,
 	    "id.resp_h" ,
 	    "id.resp_p" ,
+	    "proto"		,
     };
 	
-	TableName gv_brolog = TableName.valueOf("Log");
+	TableName gv_brolog = TableName.valueOf("BRO_LOG");
 
-	String gv_famy_key = "key";
+	String gv_fam_key = "key";
 
 	String gv_fam_conn = "conn";
 
@@ -109,54 +114,126 @@ public class ConnectioHbase {
 		
 		JSONParser lv_parser = new JSONParser();
 		
-		JSONObject lv_obj = (JSONObject) lv_parser.parse(im_json);									
+		JSONObject lv_obj_log = (JSONObject) lv_parser.parse(im_json);			//ao converter o TS esta ficando ferrado									
+		
+		//Trata para pegar o JSON do tipo de LOG
+		String lv_log_key = lv_obj_log.keySet().iterator().next().toString(); //Camptura o identificador do tipo do LOG
+		
+		//String lv_log_value = lv_obj_log.get(lv_log_key).toString();
+		Object lv_log_value = lv_obj_log.get(lv_log_key);
+					
+		
+		//JSONObject lv_obj_val = (JSONObject) lv_parser.parse(lv_log_value);
+		JSONObject lv_obj_val = (JSONObject) lv_log_value;
+		
+		//System.out.println("\nJSON-Log:"+lv_log_key + "\t VALOR:"+lv_log_value);
+		
+		//Trata os valores do JSON para salvar no banco
 		
 		String lv_field,
-			   lv_value;
+			   lv_value,
+		       lv_replace;
 		
-		int lv_cont = 0;
-		
+		String lv_famyli = "";			
+
 		byte[] lv_row;
-		
+
 		String lv_id = null;
 		
-		lv_id = (String)lv_obj.get("id.orig_h") + 
+		switch (lv_log_key) {
+		
+		case "conn":
+			
+			lv_famyli = gv_fam_conn;
+			break;
+			
+		case "dns":
+
+			lv_famyli = gv_fam_dns;
+			break;
+		
+		case "http":
+
+			lv_famyli = gv_fam_dns;
+			break;
+			
+		default:
+			break;
+		}
+		
+		if(lv_famyli.equals("")) {
+			return;
+		}		
+		
+		//System.out.println("\nFAM-Log:"+lv_famyli);
+		
+		BigDecimal number = new BigDecimal(lv_obj_val.get("ts").toString()); //Precisa pois no LOG do BRO as chaves são o UID e TS pois no DNS os UID se repetem
+																			 //Fica dando erro que linha já existe se não inserir
+		Date lv_time = new Date();
+		
+		long lv_stamp = lv_time.getTime();
+				
+		lv_id = (String)lv_obj_val.get("id.orig_h") + 
 				'-' +
-				(String)lv_obj.get("uid");
+				(String)lv_obj_val.get("uid");
+		
+		if(lv_famyli.equals(gv_fam_dns)) {
+			//System.out.println("\n TIMESTAMP:"+lv_stamp);
+			lv_id = lv_id + "-" + lv_stamp; //Pegar STAMP do programa e não do BRO
+		}
+
+		lv_id = lv_id.replace("::", "");//Se o nome da coluna fe80::e5cd:4a03:57de:e00a
+		lv_id = lv_id.replace(":", "");//Se o nome da coluna tiver fe80::e5cd:4a03:57de:e00a
 		
 		//System.out.println("\n Row:"+lv_id);
-		
+
 		lv_row = Bytes.toBytes(lv_id);
 
 		Put ls_table = new Put(lv_row);
+
+		M_PutLs(gv_fam_key, "log", lv_famyli, ls_table); //Para se ter um identificador de que log é essa informação
 		
-		Iterator<?> lv_keys = lv_obj.keySet().iterator();
-		
-		System.out.println("\n JSON:"+im_json);
+		Iterator<?> lv_keys = lv_obj_val.keySet().iterator();
 		
 		while(lv_keys.hasNext()) {
 			
-			lv_field = lv_keys.next().toString();
+			lv_field = lv_keys.next().toString();															
 			
-			lv_value = lv_obj.get(lv_field).toString();						
+			lv_value = lv_obj_val.get(lv_field).toString();	
 			
-			//Se for menor e igual a 5 insere na famyli KEY - NÃO FUNCIONA POIS O OBJETO DESORGANIZA O JSON			
-			//lv_cont ++;
+			if(lv_field.equals(gs_key[0])) {				
+				
+				number = new BigDecimal(lv_obj_val.get(lv_field).toString());
+
+				//System.out.println("\nID: " +lv_id +  "\tBIG->TIMSTT: "+ number);
+				
+				lv_value = number.toString();
+				
+			}
 			
-			//System.out.println("\nCON:"+lv_cont+ "/tFieldname:"+ lv_field + "\t \t Value:" + lv_value);
+
+			//System.out.println("Fieldname:"+ lv_field + "\t \t Value:" + lv_value);
+			
+			if(lv_field.contains("::")) {
+				System.out.println("\nLinha com :: _>"+lv_id);
+			}
+			
+			lv_replace = lv_field.replace(".", "_");//Se o nome da coluna tiver ponto remove pro "UNDERLINE"
 			
 			if(lv_field.equals(gs_key[0]) ||
 		       lv_field.equals(gs_key[1]) ||
 		       lv_field.equals(gs_key[2]) ||
 		       lv_field.equals(gs_key[3]) ||
 		       lv_field.equals(gs_key[4]) ||
-		       lv_field.equals(gs_key[5])
-			   ){				
+		       lv_field.equals(gs_key[5]) ||
+		       lv_field.equals(gs_key[6])
+			   ){																	
 				
-				M_PutLs(gv_famy_key, lv_field, lv_value, ls_table);
+				M_PutLs(gv_fam_key, lv_replace, lv_value, ls_table);
 				//System.out.println("\n Fieldname:"+ lv_field + "\t \t Value:" + lv_value);
 			}else{
-				M_PutLs(gv_fam_conn, lv_field, lv_value, ls_table);			
+				//System.out.println("\n FAM:"+lv_famyli+"\tFieldname:"+ lv_field + "\t \t Value:" + lv_value);
+				M_PutLs(lv_famyli, lv_replace, lv_value, ls_table);			
 			}
 															
 		}
@@ -168,7 +245,9 @@ public class ConnectioHbase {
 			gv_admin.addColumn(gv_brolog, desc1);
 			//System.out.println("Success.");
 		} catch (Exception e) {
+			
 			System.out.println("Failed.");
+			System.out.println("\n TIPO:" +lv_log_key+ "\tRow:" +lv_id+ "\tLOG-JSON:" + lv_log_value);
 			System.out.println(e.getMessage());
 		} finally {
 			// admin.enableTable(test);
@@ -222,22 +301,22 @@ public class ConnectioHbase {
 		//***********************************
 
 		// ----------- Ts
-		M_PutLs(gv_famy_key, lo_log.gs_key[0], lo_log.getTs(), ls_table);
+		M_PutLs(gv_fam_key, lo_log.gs_key[0], lo_log.getTs(), ls_table);
 
 		// ----------- Uid
-		M_PutLs(gv_famy_key, lo_log.gs_key[1], lo_log.getUid(), ls_table);
+		M_PutLs(gv_fam_key, lo_log.gs_key[1], lo_log.getUid(), ls_table);
 
 		// ----------- Id.Orig_H
-		M_PutLs(gv_famy_key, lo_log.gs_key[2], lo_log.getOrig_h(), ls_table);
+		M_PutLs(gv_fam_key, lo_log.gs_key[2], lo_log.getOrig_h(), ls_table);
 
 		// ----------- Id.Orig_P
-		M_PutLs(gv_famy_key, lo_log.gs_key[3], lo_log.getOrig_p(), ls_table);
+		M_PutLs(gv_fam_key, lo_log.gs_key[3], lo_log.getOrig_p(), ls_table);
 
 		// ----------- Id.Resp_H
-		M_PutLs(gv_famy_key, lo_log.gs_key[4], lo_log.getResp_h(), ls_table);
+		M_PutLs(gv_fam_key, lo_log.gs_key[4], lo_log.getResp_h(), ls_table);
 
 		// ----------- Id.Orig_P
-		M_PutLs(gv_famy_key, lo_log.gs_key[5], lo_log.getResp_p(), ls_table);
+		M_PutLs(gv_fam_key, lo_log.gs_key[5], lo_log.getResp_p(), ls_table);
 
 		//***********************************
 		//DNS=====>>>
@@ -352,7 +431,7 @@ public class ConnectioHbase {
 		
 		FilterList lv_list;
 		
-		Filter lv_filter1 = new FamilyFilter(CompareOp.EQUAL,new BinaryComparator(gv_famy_key.getBytes()) );
+		Filter lv_filter1 = new FamilyFilter(CompareOp.EQUAL,new BinaryComparator(gv_fam_key.getBytes()) );
 		
 		Filter lv_filter2 = new RowFilter(CompareOp.GREATER_OR_EQUAL, new BinaryComparator(lv_row1));
 		

@@ -80,12 +80,12 @@ public class Kafka_Hbase {
 		kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
 
 		// Configure Spark to listen messages in topic test
-		Collection<String> topics = Arrays.asList("BroLogConn");
+		Collection<String> topics = Arrays.asList("BroLog");
 
 		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("BroLogConn");
 		
 		// Read messages in batch of 30 seconds
-		JavaStreamingContext jssc = new JavaStreamingContext(conf,Durations.milliseconds(10)); //Durations.seconds(3));é bem rápido
+		JavaStreamingContext jssc = new JavaStreamingContext(conf,Durations.seconds(3));//Durations.milliseconds(10)); é bem rápido
 		
 		//Add 21/08/18
 		//Disable INFO messages-> https://stackoverflow.com/questions/48607642/disable-info-messages-in-spark-for-an-specific-application
@@ -107,9 +107,9 @@ public class Kafka_Hbase {
 		lines.foreachRDD(rdd -> {
 
 			System.out.println("Dados:Do RDDe" + rdd.count());
-
+						
 			rdd.foreachPartition(partitionOfRecords -> {
-
+				
 				String value;
 
 				ConnectioHbase lo_connection = new ConnectioHbase();
@@ -124,9 +124,11 @@ public class Kafka_Hbase {
 
 					value = partitionOfRecords.next();
 					
-					lo_connection.M_PutConn(value);
+					lo_log = gson.fromJson(value, Cl_BroLog.class);
+										
 					
-					//lo_log = gson.fromJson(value, Cl_BroLog.class);
+					lo_connection.M_PutConn(value);
+										
 					
 					//System.out.println("VALUE:"+value);									
 					
@@ -141,7 +143,7 @@ public class Kafka_Hbase {
 		});
 		
 		
-		//Teste tratar as linhas para fazer o map VERIFICAR NO SPARK SE ESSE REALMENTE SERIA O JEITO CORRETO
+		/*//Teste tratar as linhas para fazer o map VERIFICAR NO SPARK SE ESSE REALMENTE SERIA O JEITO CORRETO
 		// Break every message into words and return list of words
 		JavaDStream<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
 			public Iterator<String> call(String line) throws Exception {
@@ -186,8 +188,8 @@ public class Kafka_Hbase {
 
 
 		// Print the word count
-		wordCount.print(100);// sem informar o número so os 10 primeiros são exibidos
-		
+		wordCount.print();// sem informar o número so os 10 primeiros são exibidos
+		*/
 		jssc.start();
 		jssc.awaitTermination();
 
