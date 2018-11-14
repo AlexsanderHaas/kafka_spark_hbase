@@ -1,32 +1,35 @@
 package main;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.text.DecimalFormat;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.commons.net.ntp.TimeStamp;
+
+//import org.apache.commons.net.ntp.TimeStamp;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.KeyValue;
+//import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptor;
+import org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder;
+//import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
+//import org.apache.hadoop.hbase.client.Get;
+//import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
-import org.apache.hadoop.hbase.filter.ByteArrayComparable;
-import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
+//import org.apache.hadoop.hbase.filter.ByteArrayComparable;
+//import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.FamilyFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
@@ -36,8 +39,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.spark.api.python.BytesToString;
-import org.apache.spark.network.util.ByteArrayReadableChannel;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -45,11 +46,11 @@ import org.json.simple.parser.ParseException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.protobuf.ServiceException;
-import javafx.collections.transformation.FilteredList;
+
 
 //Add 16/09
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
+//import org.json.simple.JSONObject;
+//import org.json.simple.parser.JSONParser;
 import java.util.Date;
 
 
@@ -78,8 +79,13 @@ public class ConnectioHbase {
 
 	Configuration gv_config = HBaseConfiguration.create();
 
-	String gv_path = this.getClass().getClassLoader().getResource("hbase-site.xml").getPath();
-
+	//String gv_path = this.getClass().getClassLoader().getResource("hbase-site.xml").getPath();
+	//String gv_path = this.getClass().getClassLoader().getResource("/home/user/Documentos/spark_bro/hbase-site.xml").getPath();
+	//String gv_path = this.getClass().getClassLoader().getResource("/usr/hdp/current/hbase-client/conf/hbase-site.xml").getPath();
+	
+	File lv_f = new File("/usr/hdp/current/hbase-client/conf/hbase-site.xml");
+	String gv_path = lv_f.getPath();
+	
 	Connection gv_connection;
 
 	Admin gv_admin;
@@ -98,7 +104,7 @@ public class ConnectioHbase {
 
 		gv_connection = ConnectionFactory.createConnection(gv_config);
 
-		HBaseAdmin.checkHBaseAvailable(gv_config);
+		//HBaseAdmin.checkHBaseAvailable(gv_config);
 
 		gv_admin = gv_connection.getAdmin();
 
@@ -241,8 +247,11 @@ public class ConnectioHbase {
 		gv_table.put(ls_table);
 
 		try {
-			HColumnDescriptor desc1 = new HColumnDescriptor(lv_row);
-			gv_admin.addColumn(gv_brolog, desc1);
+			//HColumnDescriptor desc1 = new HColumnDescriptor(lv_row);
+			ColumnFamilyDescriptor lv_desc = ColumnFamilyDescriptorBuilder.newBuilder(lv_row).build();
+
+			//gv_admin.addColumn(gv_brolog, desc1);
+			gv_admin.addColumnFamily(gv_brolog, lv_desc);
 			//System.out.println("Success.");
 		} catch (Exception e) {
 			
@@ -281,7 +290,7 @@ public class ConnectioHbase {
 
 		gv_table.put(ls_table);
 
-		try {
+		/*try {
 			HColumnDescriptor desc1 = new HColumnDescriptor(lv_row);
 			gv_admin.addColumn(gv_brolog, desc1);
 			//System.out.println("Success.");
@@ -290,7 +299,7 @@ public class ConnectioHbase {
 			System.out.println(e.getMessage());
 		} finally {
 			// admin.enableTable(test);
-		}
+		}*/
 
 	}
 
@@ -427,15 +436,15 @@ public class ConnectioHbase {
 		
 		byte[] lv_row1 = Bytes.toBytes("1528667602825");
 		
-		List<Filter> lst_filters = new ArrayList<>();			
+		List<Filter> lst_filters = new ArrayList<Filter>();			
 		
 		FilterList lv_list;
 		
-		Filter lv_filter1 = new FamilyFilter(CompareOp.EQUAL,new BinaryComparator(gv_fam_key.getBytes()) );
+		//Filter lv_filter1 = new FamilyFilter(CompareOp.EQUAL,new BinaryComparator(gv_fam_key.getBytes()) );
 		
-		Filter lv_filter2 = new RowFilter(CompareOp.GREATER_OR_EQUAL, new BinaryComparator(lv_row1));
+		//Filter lv_filter2 = new RowFilter(CompareOp.GREATER_OR_EQUAL, new BinaryComparator(lv_row1));
 		
-		lst_filters.add(lv_filter1);
+		//lst_filters.add(lv_filter1);
 		
 		lv_list = new FilterList(Operator.MUST_PASS_ALL, lst_filters);
 		
@@ -460,9 +469,9 @@ public class ConnectioHbase {
             	
             	for(Cell cell : result.listCells()) {
             		
-            		System.out.println(i+"-- \n Familia: " + Bytes.toString(cell.getFamily()) 
-            				+ "\n Columns:" + Bytes.toString(cell.getQualifier())
-            				+ "\n Value:" + Bytes.toString(cell.getValue()) );
+            		System.out.println(i+"-- \n Familia: " + Bytes.toString(cell.getFamilyArray()) 
+            				+ "\n Columns:" + Bytes.toString(cell.getQualifierArray())
+            				+ "\n Value:" + Bytes.toString(cell.getValueArray()) );
             	}
             	
             	/*for(KeyValue key : result.list()){

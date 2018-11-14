@@ -26,21 +26,22 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.ConsumerStrategies;
 import org.apache.spark.streaming.kafka010.KafkaUtils;
 import org.apache.spark.streaming.kafka010.LocationStrategies;
-
+import org.apache.spark.streaming.scheduler.BatchInfo;
+import org.apache.spark.streaming.scheduler.StreamingListenerBatchCompleted;
 
 import com.google.protobuf.ServiceException;
 
 import java.io.IOException;
 import java.util.*;
 
-import com.google.gson.Gson;
+/*import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import main.ConnectioHbase;
-import scala.Tuple2;
 
+import scala.Tuple2;*/
+import main.ConnectioHbase;
 
 //Add 21/08
 import org.apache.log4j.Logger;
@@ -65,7 +66,7 @@ public class Kafka_Hbase {
 		// Configure Spark to connect to Kafka running on local machine
 		Map<String, Object> kafkaParams = new HashMap<String, Object>();
 
-		kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "namenode.ambari.hadoop:6667");
 
 		kafkaParams.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
 				"org.apache.kafka.common.serialization.StringDeserializer");
@@ -82,10 +83,12 @@ public class Kafka_Hbase {
 		// Configure Spark to listen messages in topic test
 		Collection<String> topics = Arrays.asList("BroLog");
 
-		SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("BroLogConn");
+		//SparkConf conf = new SparkConf().setMaster("local[2]").setAppName("BroLogConn");//.setExecutorEnv("username","hdfs");
+		
+		SparkConf conf = new SparkConf().setAppName("BroLogConn");
 		
 		// Read messages in batch of 30 seconds
-		JavaStreamingContext jssc = new JavaStreamingContext(conf,Durations.seconds(3));//Durations.milliseconds(10)); é bem rápido
+		JavaStreamingContext jssc = new JavaStreamingContext(conf,Durations.seconds(60));//Durations.milliseconds(10)); é bem rápido
 		
 		//Add 21/08/18
 		//Disable INFO messages-> https://stackoverflow.com/questions/48607642/disable-info-messages-in-spark-for-an-specific-application
@@ -115,16 +118,16 @@ public class Kafka_Hbase {
 				ConnectioHbase lo_connection = new ConnectioHbase();
 
 				// Get Gson object
-				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				//Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 				// parse json string to object
-				Cl_BroLog lo_log;
+				//Cl_BroLog lo_log;
 												
 				while (partitionOfRecords.hasNext()) {
 
 					value = partitionOfRecords.next();
 					
-					lo_log = gson.fromJson(value, Cl_BroLog.class);
+					//lo_log = gson.fromJson(value, Cl_BroLog.class);
 										
 					
 					lo_connection.M_PutConn(value);
@@ -190,6 +193,9 @@ public class Kafka_Hbase {
 		// Print the word count
 		wordCount.print();// sem informar o número so os 10 primeiros são exibidos
 		*/
+		
+		//lines.print();
+		
 		jssc.start();
 		jssc.awaitTermination();
 
@@ -224,7 +230,7 @@ public class Kafka_Hbase {
 
 		Connection connection = ConnectionFactory.createConnection(config);
 
-		HBaseAdmin.checkHBaseAvailable(config);
+		//HBaseAdmin.checkHBaseAvailable(config);
 
 		Admin admin = connection.getAdmin();
 
